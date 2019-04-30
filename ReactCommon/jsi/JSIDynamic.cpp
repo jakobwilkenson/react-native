@@ -50,6 +50,7 @@ Value valueFromDynamic(Runtime& runtime, const folly::dynamic& dyn) {
 }
 
 folly::dynamic dynamicFromValue(Runtime& runtime, const Value& value) {
+  throw new JSError(runtime, "jakob dynamicFromValue");
   if (value.isUndefined() || value.isNull()) {
     return nullptr;
   } else if (value.isBool()) {
