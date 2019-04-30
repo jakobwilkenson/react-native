@@ -14,6 +14,7 @@ namespace facebook {
 namespace jsi {
 
 Value valueFromDynamic(Runtime& runtime, const folly::dynamic& dyn) {
+  throw new JSError(runtime, "jakob valueFromDynamic");
   switch (dyn.type()) {
   case folly::dynamic::NULLT:
     return Value::null();
