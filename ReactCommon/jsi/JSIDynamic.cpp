@@ -7,7 +7,6 @@
 
 #include <folly/dynamic.h>
 #include <jsi/jsi.h>
-#include <android/log.h>
 
 using namespace facebook::jsi;
 
