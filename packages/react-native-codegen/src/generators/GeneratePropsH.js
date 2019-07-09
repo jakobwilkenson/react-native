@@ -10,15 +10,12 @@
 
 'use strict';
 
-const {getCppTypeForAnnotation} = require('./CppHelpers.js');
-const {upperCaseFirst} = require('../Helpers.js');
+const {getCppTypeForAnnotation, toSafeCppString} = require('./CppHelpers.js');
 
 import type {PropTypeShape, SchemaType} from '../CodegenSchema';
 
 // File path -> contents
 type FilesOutput = Map<string, string>;
-
-type TypeAnnotation = $PropertyType<PropTypeShape, 'typeAnnotation'>;
 
 const template = `
 /**
@@ -67,6 +64,51 @@ static inline std::string toString(const ::_ENUM_NAME_:: &value) {
   switch (value) {
     ::_TO_CASES_::
   }
+}
+`.trim();
+
+const arrayEnumTemplate = `
+using ::_ENUM_MASK_:: = uint32_t;
+
+enum class ::_ENUM_NAME_::: ::_ENUM_MASK_:: {
+  ::_VALUES_::
+};
+
+constexpr bool operator&(
+  ::_ENUM_MASK_:: const lhs,
+  enum ::_ENUM_NAME_:: const rhs) {
+  return lhs & static_cast<::_ENUM_MASK_::>(rhs);
+}
+
+constexpr ::_ENUM_MASK_:: operator|(
+  ::_ENUM_MASK_:: const lhs,
+  enum ::_ENUM_NAME_:: const rhs) {
+  return lhs | static_cast<::_ENUM_MASK_::>(rhs);
+}
+
+constexpr void operator|=(
+  ::_ENUM_MASK_:: &lhs,
+  enum ::_ENUM_NAME_:: const rhs) {
+  lhs = lhs | static_cast<::_ENUM_MASK_::>(rhs);
+}
+
+static inline void fromRawValue(const RawValue &value, ::_ENUM_MASK_:: &result) {
+  auto items = std::vector<std::string>{value};
+  for (const auto &item : items) {
+    ::_FROM_CASES_::
+    abort();
+  }
+}
+
+static inline std::string toString(const ::_ENUM_MASK_:: &value) {
+    auto result = std::string{};
+    auto separator = std::string{", "};
+
+    ::_TO_CASES_::
+    if (!result.empty()) {
+      result.erase(result.length() - separator.length());
+    }
+    return result;
 }
 `.trim();
 
@@ -121,6 +163,10 @@ function getNativeTypeFromAnnotation(componentName: string, prop): string {
           'ArrayTypeAnnotation of type ArrayTypeAnnotation not supported',
         );
       }
+      if (typeAnnotation.elementType.type === 'StringEnumTypeAnnotation') {
+        const enumName = getEnumName(componentName, prop.name);
+        return getEnumMaskName(enumName);
+      }
       const itemAnnotation = getNativeTypeFromAnnotation(componentName, {
         typeAnnotation: typeAnnotation.elementType,
         name: componentName,
@@ -141,6 +187,9 @@ function convertDefaultTypeToString(componentName: string, prop): string {
     case 'BooleanTypeAnnotation':
       return String(typeAnnotation.default);
     case 'StringTypeAnnotation':
+      if (typeAnnotation.default == null) {
+        return '';
+      }
       return `"${typeAnnotation.default}"`;
     case 'Int32TypeAnnotation':
       return String(typeAnnotation.default);
@@ -162,10 +211,25 @@ function convertDefaultTypeToString(componentName: string, prop): string {
           throw new Error('Receieved unknown NativePrimitiveTypeAnnotation');
       }
     case 'ArrayTypeAnnotation': {
-      return '';
+      switch (typeAnnotation.elementType.type) {
+        case 'StringEnumTypeAnnotation':
+          if (typeAnnotation.elementType.default == null) {
+            throw new Error(
+              'A default is required for array StringEnumTypeAnnotation',
+            );
+          }
+          const enumName = getEnumName(componentName, prop.name);
+          const enumMaskName = getEnumMaskName(enumName);
+          const defaultValue = `${enumName}::${toSafeCppString(
+            typeAnnotation.elementType.default || '',
+          )}`;
+          return `static_cast<${enumMaskName}>(${defaultValue})`;
+        default:
+          return '';
+      }
     }
     case 'StringEnumTypeAnnotation':
-      return `${getEnumName(componentName, prop.name)}::${upperCaseFirst(
+      return `${getEnumName(componentName, prop.name)}::${toSafeCppString(
         typeAnnotation.default,
       )}`;
     default:
@@ -175,17 +239,71 @@ function convertDefaultTypeToString(componentName: string, prop): string {
 }
 
 function getEnumName(componentName, propName): string {
-  const uppercasedPropName = upperCaseFirst(propName);
+  const uppercasedPropName = toSafeCppString(propName);
   return `${componentName}${uppercasedPropName}`;
 }
 
+function getEnumMaskName(enumName: string): string {
+  return `${enumName}Mask`;
+}
+
 function convertValueToEnumOption(value: string): string {
-  return upperCaseFirst(value);
+  return toSafeCppString(value);
+}
+
+function generateArrayEnumString(
+  componentName: string,
+  name: string,
+  enumOptions,
+): string {
+  const options = enumOptions.map(option => option.name);
+  const enumName = getEnumName(componentName, name);
+
+  const values = options
+    .map((option, index) => `${toSafeCppString(option)} = 1 << ${index}`)
+    .join(',\n  ');
+
+  const fromCases = options
+    .map(
+      option =>
+        `if (item == "${option}") {
+      result |= ${enumName}::${toSafeCppString(option)};
+      continue;
+    }`,
+    )
+    .join('\n    ');
+
+  const toCases = options
+    .map(
+      option =>
+        `if (value & ${enumName}::${toSafeCppString(option)}) {
+      result += "${option}" + separator;
+    }`,
+    )
+    .join('\n' + '    ');
+
+  return arrayEnumTemplate
+    .replace(/::_ENUM_NAME_::/g, enumName)
+    .replace(/::_ENUM_MASK_::/g, getEnumMaskName(enumName))
+    .replace('::_VALUES_::', values)
+    .replace('::_FROM_CASES_::', fromCases)
+    .replace('::_TO_CASES_::', toCases);
 }
 
 function generateEnumString(componentName: string, component): string {
   return component.props
     .map(prop => {
+      if (
+        prop.typeAnnotation.type === 'ArrayTypeAnnotation' &&
+        prop.typeAnnotation.elementType.type === 'StringEnumTypeAnnotation'
+      ) {
+        return generateArrayEnumString(
+          componentName,
+          prop.name,
+          prop.typeAnnotation.elementType.options,
+        );
+      }
+
       if (prop.typeAnnotation.type !== 'StringEnumTypeAnnotation') {
         return;
       }
@@ -213,7 +331,7 @@ function generateEnumString(componentName: string, component): string {
 
       return enumTemplate
         .replace(/::_ENUM_NAME_::/g, enumName)
-        .replace('::_VALUES_::', values.map(upperCaseFirst).join(', '))
+        .replace('::_VALUES_::', values.map(toSafeCppString).join(', '))
         .replace('::_FROM_CASES_::', fromCases)
         .replace('::_TO_CASES_::', toCases);
     })
@@ -283,6 +401,9 @@ function getImports(component): Set<string> {
 
     if (typeAnnotation.type === 'ArrayTypeAnnotation') {
       imports.add('#include <vector>');
+      if (typeAnnotation.elementType.type === 'StringEnumTypeAnnotation') {
+        imports.add('#include <cinttypes>');
+      }
     }
 
     if (

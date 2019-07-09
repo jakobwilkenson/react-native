@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the LICENSE
@@ -74,34 +74,6 @@ const short int LAYOUT_PADDING_START_INDEX = 10;
 const short int LAYOUT_BORDER_START_INDEX = 14;
 
 bool useBatchingForLayoutOutputs;
-
-class PtrJNodeMap {
-  using JNodeArray = JArrayClass<JYogaNode::javaobject>;
-  std::map<YGNodeRef, size_t> ptrsToIdxs_;
-  alias_ref<JNodeArray> javaNodes_;
-
-public:
-  PtrJNodeMap() : ptrsToIdxs_{}, javaNodes_{} {}
-  PtrJNodeMap(
-      alias_ref<JArrayLong> nativePointers,
-      alias_ref<JNodeArray> javaNodes)
-      : javaNodes_{javaNodes} {
-    auto pin = nativePointers->pinCritical();
-    auto ptrs = pin.get();
-    for (size_t i = 0, n = pin.size(); i < n; ++i) {
-      ptrsToIdxs_[(YGNodeRef) ptrs[i]] = i;
-    }
-  }
-
-  local_ref<JYogaNode> ref(YGNodeRef node) {
-    auto idx = ptrsToIdxs_.find(node);
-    if (idx == ptrsToIdxs_.end()) {
-      return local_ref<JYogaNode>{};
-    } else {
-      return javaNodes_->getElement(idx->second);
-    }
-  }
-};
 
 namespace {
 
@@ -938,10 +910,6 @@ void jni_YGNodeSetStyleInputs(
   YGNodeSetStyleInputs(_jlong2YGNodeRef(nativePointer), result, size);
 }
 
-jint jni_YGNodeGetInstanceCount() {
-  return YGNodeGetInstanceCount();
-}
-
 jlong jni_YGNodeStyleGetMargin(jlong nativePointer, jint edge) {
   YGNodeRef yogaNodeRef = _jlong2YGNodeRef(nativePointer);
   if (!YGNodeEdges{yogaNodeRef}.has(YGNodeEdges::MARGIN)) {
@@ -1105,7 +1073,6 @@ jint JNI_OnLoad(JavaVM* vm, void*) {
             YGMakeCriticalNativeMethod(jni_YGNodeStyleSetMaxHeightPercent),
             YGMakeCriticalNativeMethod(jni_YGNodeStyleGetAspectRatio),
             YGMakeCriticalNativeMethod(jni_YGNodeStyleSetAspectRatio),
-            YGMakeCriticalNativeMethod(jni_YGNodeGetInstanceCount),
             YGMakeCriticalNativeMethod(jni_YGNodePrint),
             YGMakeNativeMethod(jni_YGNodeClone),
             YGMakeNativeMethod(jni_YGNodeSetStyleInputs),

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the LICENSE
@@ -62,7 +62,6 @@ WIN_EXPORT void YGNodeFreeRecursiveWithCleanupFunc(
     YGNodeCleanupFunc cleanup);
 WIN_EXPORT void YGNodeFreeRecursive(YGNodeRef node);
 WIN_EXPORT void YGNodeReset(YGNodeRef node);
-WIN_EXPORT int32_t YGNodeGetInstanceCount(void);
 
 WIN_EXPORT void YGNodeInsertChild(
     YGNodeRef node,

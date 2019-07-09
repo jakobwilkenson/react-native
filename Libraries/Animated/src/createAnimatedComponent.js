@@ -11,8 +11,8 @@
 
 const {AnimatedEvent} = require('./AnimatedEvent');
 const AnimatedProps = require('./nodes/AnimatedProps');
-const React = require('React');
-const DeprecatedViewStylePropTypes = require('DeprecatedViewStylePropTypes');
+const React = require('react');
+const DeprecatedViewStylePropTypes = require('../../DeprecatedPropTypes/DeprecatedViewStylePropTypes');
 
 const invariant = require('invariant');
 
@@ -156,9 +156,7 @@ function createAnimatedComponent(Component: any, defaultProps: any): any {
           // have to make sure the view doesn't get optimized away because it cannot
           // go through the NativeViewHierarchyManager since it operates on the shadow
           // thread.
-          collapsable={
-            this._propsAnimated.__isNative ? false : props.collapsable
-          }
+          collapsable={false}
         />
       );
     }

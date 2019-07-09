@@ -42,6 +42,7 @@ const inspect = (function() {
   function inspect(obj, opts) {
     var ctx = {
       seen: [],
+      formatValueCalls: 0,
       stylize: stylizeNoColor,
     };
     return formatValue(ctx, obj, opts.depth);
@@ -62,6 +63,13 @@ const inspect = (function() {
   }
 
   function formatValue(ctx, value, recurseTimes) {
+    ctx.formatValueCalls++;
+    if (ctx.formatValueCalls > 200) {
+      return `[TOO BIG formatValueCalls ${
+        ctx.formatValueCalls
+      } exceeded limit of 200]`;
+    }
+
     // Primitive types cannot have properties
     var primitive = formatPrimitive(ctx, value);
     if (primitive) {
@@ -557,7 +565,15 @@ if (global.nativeLoggingHook) {
       const reactNativeMethod = console[methodName];
       if (originalConsole[methodName]) {
         console[methodName] = function() {
-          originalConsole[methodName](...arguments);
+          // TODO(T43930203): remove this special case once originalConsole.assert properly checks
+          // the condition
+          if (methodName === 'assert') {
+            if (!arguments[0]) {
+              originalConsole.assert(...arguments);
+            }
+          } else {
+            originalConsole[methodName](...arguments);
+          }
           reactNativeMethod.apply(console, arguments);
         };
       }

@@ -9,6 +9,7 @@
 
 #include <react/core/EventDispatcher.h>
 #include <react/core/Props.h>
+#include <react/core/RawPropsParser.h>
 #include <react/core/ShadowNode.h>
 #include <react/core/State.h>
 #include <react/core/StateData.h>
@@ -34,7 +35,7 @@ class ComponentDescriptor {
 
   ComponentDescriptor(
       EventDispatcher::Shared const &eventDispatcher,
-      ContextContainer::Shared const &contextContainer = {});
+      ContextContainer::Shared const &contextContainer);
 
   virtual ~ComponentDescriptor() = default;
 
@@ -98,7 +99,8 @@ class ComponentDescriptor {
    * Create an initial State object that represents (and contains) an initial
    * State's data which can be constructed based on initial Props.
    */
-  virtual State::Shared createInitialState(const SharedProps &props) const = 0;
+  virtual State::Shared createInitialState(
+      ShadowNodeFragment const &fragment) const = 0;
 
   /*
    * Creates a new State object that represents (and contains) a new version of
@@ -111,6 +113,7 @@ class ComponentDescriptor {
  protected:
   EventDispatcher::Shared eventDispatcher_;
   ContextContainer::Shared contextContainer_;
+  RawPropsParser rawPropsParser_{};
 };
 
 } // namespace react

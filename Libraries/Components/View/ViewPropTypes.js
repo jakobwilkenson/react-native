@@ -10,12 +10,18 @@
 
 'use strict';
 
-import type {PressEvent, Layout, LayoutEvent} from 'CoreEventTypes';
-import type {EdgeInsetsProp} from 'EdgeInsetsPropType';
-import type React from 'React';
-import type {ViewStyleProp} from 'StyleSheet';
-import type {TVViewProps} from 'TVViewPropTypes';
-import type {AccessibilityRole, AccessibilityStates} from 'ViewAccessibility';
+import type {PressEvent, Layout, LayoutEvent} from '../../Types/CoreEventTypes';
+import type {EdgeInsetsProp} from '../../StyleSheet/EdgeInsetsPropType';
+import type {Node} from 'react';
+import type {ViewStyleProp} from '../../StyleSheet/StyleSheet';
+import type {TVViewProps} from '../AppleTV/TVViewPropTypes';
+import type {
+  AccessibilityRole,
+  AccessibilityStates,
+  AccessibilityState,
+  AccessibilityActionEvent,
+  AccessibilityActionInfo,
+} from './ViewAccessibility';
 
 export type ViewLayout = Layout;
 export type ViewLayoutEvent = LayoutEvent;
@@ -25,9 +31,8 @@ type DirectEventProps = $ReadOnly<{|
    * When `accessible` is true, the system will try to invoke this function
    * when the user performs an accessibility custom action.
    *
-   * @platform ios
    */
-  onAccessibilityAction?: ?(string) => void,
+  onAccessibilityAction?: ?(event: AccessibilityActionEvent) => void,
 
   /**
    * When `accessible` is true, the system will try to invoke this function
@@ -306,11 +311,11 @@ type AndroidViewProps = $ReadOnly<{|
   nextFocusUp?: ?number,
 
   /**
-   * Whether this `View` should be clickable with a non-touch click, eg. enter key on a hardware keyboard.
+   * Whether this `View` should be focusable with a non-touch input device, eg. receive focus with a hardware keyboard.
    *
    * @platform android
    */
-  clickable?: boolean,
+  focusable?: boolean,
 
   /**
    * The action to perform when this `View` is clicked on by a non-touch click, eg. enter key on a hardware keyboard.
@@ -321,13 +326,6 @@ type AndroidViewProps = $ReadOnly<{|
 |}>;
 
 type IOSViewProps = $ReadOnly<{|
-  /**
-   * Provides an array of custom actions available for accessibility.
-   *
-   * @platform ios
-   */
-  accessibilityActions?: ?$ReadOnlyArray<string>,
-
   /**
    * Prevents view from being inverted if set to true and color inversion is turned on.
    *
@@ -377,7 +375,7 @@ export type ViewProps = $ReadOnly<{|
   // so we must include TVViewProps
   ...TVViewProps,
 
-  children?: React.Node,
+  children?: Node,
   style?: ?ViewStyleProp,
 
   /**
@@ -416,6 +414,13 @@ export type ViewProps = $ReadOnly<{|
    * Indicates to accessibility services that UI Component is in a specific State.
    */
   accessibilityStates?: ?AccessibilityStates,
+  accessibilityState?: ?AccessibilityState,
+
+  /**
+   * Provides an array of custom actions available for accessibility.
+   *
+   */
+  accessibilityActions?: ?$ReadOnlyArray<AccessibilityActionInfo>,
 
   /**
    * Used to locate this view in end-to-end tests.

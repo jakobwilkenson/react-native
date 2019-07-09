@@ -18,6 +18,7 @@
 #include <react/uimanager/ComponentDescriptorFactory.h>
 #include <react/uimanager/ComponentDescriptorRegistry.h>
 #include <react/uimanager/SchedulerDelegate.h>
+#include <react/uimanager/SchedulerToolbox.h>
 #include <react/uimanager/UIManagerBinding.h>
 #include <react/uimanager/UIManagerDelegate.h>
 #include <react/uimanager/primitives.h>
@@ -31,9 +32,7 @@ namespace react {
  */
 class Scheduler final : public UIManagerDelegate, public ShadowTreeDelegate {
  public:
-  Scheduler(
-      ContextContainer::Shared const &contextContainer,
-      ComponentRegistryFactory buildRegistryFunction);
+  Scheduler(SchedulerToolbox schedulerToolbox);
   ~Scheduler();
 
 #pragma mark - Surface Management
@@ -84,16 +83,15 @@ class Scheduler final : public UIManagerDelegate, public ShadowTreeDelegate {
 
   void uiManagerDidFinishTransaction(
       SurfaceId surfaceId,
-      const SharedShadowNodeUnsharedList &rootChildNodes,
-      long startCommitTime) override;
+      const SharedShadowNodeUnsharedList &rootChildNodes) override;
   void uiManagerDidCreateShadowNode(
       const SharedShadowNode &shadowNode) override;
 
 #pragma mark - ShadowTreeDelegate
 
   void shadowTreeDidCommit(
-      const ShadowTree &shadowTree,
-      MountingTransaction &&transaction) const override;
+      ShadowTree const &shadowTree,
+      MountingCoordinator::Shared const &mountingCoordinator) const override;
 
  private:
   SchedulerDelegate *delegate_;
