@@ -9,7 +9,6 @@ package com.facebook.react.views.textinput;
 
 import static android.view.View.FOCUS_FORWARD;
 
-import android.annotation.TargetApi;
 import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
@@ -412,6 +411,11 @@ public class ReactTextInputManager extends BaseViewManager<ReactEditText, Layout
     } catch (IllegalAccessException ex) {}
   }
 
+  @ReactProp(name= "mostRecentEventCount", defaultInt = 0)
+  public void setMostRecentEventCount(ReactEditText view, int mostRecentEventCount) {
+    view.setMostRecentEventCount(mostRecentEventCount);
+  }
+
   @ReactProp(name = "caretHidden", defaultBoolean = false)
   public void setCaretHidden(ReactEditText view, boolean caretHidden) {
     view.setCursorVisible(!caretHidden);
@@ -468,7 +472,7 @@ public class ReactTextInputManager extends BaseViewManager<ReactEditText, Layout
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         view.setJustificationMode(Layout.JUSTIFICATION_MODE_INTER_WORD);
       }
-      view.setGravityHorizontal(Gravity.START);
+      view.setGravityHorizontal(Gravity.LEFT);
     } else {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         view.setJustificationMode(Layout.JUSTIFICATION_MODE_NONE);
@@ -477,9 +481,9 @@ public class ReactTextInputManager extends BaseViewManager<ReactEditText, Layout
       if (textAlign == null || "auto".equals(textAlign)) {
         view.setGravityHorizontal(Gravity.NO_GRAVITY);
       } else if ("left".equals(textAlign)) {
-        view.setGravityHorizontal(Gravity.START);
+        view.setGravityHorizontal(Gravity.LEFT);
       } else if ("right".equals(textAlign)) {
-        view.setGravityHorizontal(Gravity.END);
+        view.setGravityHorizontal(Gravity.RIGHT);
       } else if ("center".equals(textAlign)) {
         view.setGravityHorizontal(Gravity.CENTER_HORIZONTAL);
       } else {
